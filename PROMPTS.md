@@ -201,3 +201,60 @@ Ya te di las herramientas conceptuales (`synchronized`, `volatile`, visibilidad 
 - ¿Qué pasaría si en lugar de `synchronized` manual usaras una clase del paquete `java.util.concurrent.atomic` (por ejemplo, algo equivalente a un booleano atómico)? ¿Qué ventaja tendría sobre `volatile` en cuanto a operaciones compuestas (leer-y-luego-escribir)?
 
 Dame tu análisis razonado de estas tres preguntas antes de tocar el código de nuevo.
+prompt 5:
+```java
+public abstract class Sensor {
+    private String id;
+    private String ubicacion;
+    private boolean activo;
+    public Sensor(String id, String ubicacion, boolean activo){
+        this.id=id;
+        this.ubicacion=ubicacion;
+        this.activo= activo;
+    }
+    public String getId(){
+    return id;
+    }
+    public String getUbicacion(){
+        return ubicacion;
+    }
+     public boolean getActivo(){
+        return activo;
+    }
+    public void setId(String id){
+        this.id= id;
+    } 
+    public void setUbicacion(String ubicacion){
+        this.ubicacion= ubicacion;
+    } 
+    public void setActivo(boolean activo){
+        this.activo= activo;
+    } 
+ public abstract double tomarLectura();
+public String evaluarEstado(){
+    if(activo){
+        return "El Sensor esta activo";
+    }
+    else {
+        return "El Sensor esta apagado";
+    } 
+}
+}
+```
+respuesta :
+Muy bien. Ahora sí:
+- `getId`, `getUbicacion`, `getActivo`, `setId`, `setUbicacion`, `setActivo` → convención JavaBean/camelCase correcta.
+- `if(activo)` → eliminaste el ruido sintáctico, expresión booleana idiomática.
+- La lógica de `evaluarEstado()` ya es correcta y sin efectos secundarios.
+
+Este bloque, desde el punto de vista de sintaxis y estilo, ya pasaría un code review estándar de estilo Java. Buen trabajo iterando sobre las correcciones anteriores.
+
+Pero noto que **no respondiste todavía** las tres preguntas de concurrencia que te dejé pendientes. Corregir sintaxis es la parte fácil; el análisis de robustez para "Sistemas de Escala Agrícola e Industrial" es el objetivo real de este ejercicio. No voy a avanzar a la siguiente capa (por ejemplo, revisar cómo diseñarías las subclases concretas como `SensorTemperatura`) hasta que me entregues tu razonamiento en prosa sobre esto:
+
+1. **¿Cuál de los tres atributos** (`id`, `ubicacion`, `activo`) es el candidato más probable a mutar en caliente durante la ejecución del sistema (piensa en eventos de mantenimiento remoto o activación/desactivación de sensores en campo)? ¿Por qué los otros dos son menos volátiles?
+
+2. Para ese atributo, ¿basta con marcar el campo como `volatile`, o hace falta además `synchronized` en los accesores? Pista para tu razonamiento: pregúntate si el problema aquí es **solo de visibilidad entre hilos** (que un hilo vea el valor más reciente escrito por otro) o si además hay una **operación compuesta no atómica** (leer-luego-escribir, como un incremento) que podría generar una condición de carrera real.
+
+3. ¿Qué ganarías usando una clase del paquete `java.util.concurrent.atomic` en vez de `volatile` puro, específicamente quesitas frente a operaciones compuestas?
+
+Escribe tu análisis (sin código) y seguimos.
