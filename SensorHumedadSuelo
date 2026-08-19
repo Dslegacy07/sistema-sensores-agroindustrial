@@ -1,0 +1,28 @@
+import java.util.Random;
+
+public class SensorHumedadSuelo extends Sensor {
+    private double humedadPct;
+    private double min=0.0;
+    private double max=100;
+    private  Random random= new Random();
+public SensorHumedadSuelo(String id, String ubicacion, boolean activo, double humedadPct){
+    super(id, ubicacion, activo);
+    this.humedadPct=humedadPct;
+}
+public double getHumedadPct(){
+    return humedadPct;
+}
+ public void setHumedadPct(double humedadPct){
+    this.humedadPct= humedadPct;
+}
+@Override 
+public double tomarLectura(){
+   boolean estado = getActivo();
+    if (estado){
+double humedad = min + ( random.nextDouble()*(max-min));
+return humedad;
+} else{
+    return -1;
+}
+}
+}
