@@ -139,3 +139,65 @@ Ya tienes el setter correctamente encapsulado (`private boolean activo` + `sette
 - Dado que tu clase es `abstract` y probablemente tendrá subclases concretas (por ejemplo `SensorTemperatura`, `SensorHumedad`) que sobrescriben `tomarLectura()` — si esa lectura también modifica algún estado interno heredado, ¿dónde debería vivir la responsabilidad de sincronización: en la clase base o en cada subclase? ¿Por qué?
 
 Corrige el bug del `if` y las convenciones de nombres, y luego dame tu análisis escrito (en prosa, no código) de qué mecanismo de Java usarías para las variables `id`, `ubicacion` y `activo` si esta clase fuera compartida entre múltiples hilos en tu sistema agrícola.
+#prompt 4:
+```java
+public abstract class Sensor {
+    private String id;
+    private String ubicacion;
+    private boolean activo;
+    public Sensor(String id, String ubicacion, boolean activo){
+        this.id=id;
+        this.ubicacion=ubicacion;
+        this.activo= activo;
+    }
+    public String get_id(){
+    return id;
+    }
+    public String get_ubicacion(){
+        return ubicacion;
+    }
+     public boolean get_activo(){
+        return activo;
+    }
+    public void set_id(String id){
+        this.id= id;
+    } 
+    public void set_ubicacion(String ubicacion){
+        this.ubicacion= ubicacion;
+    } 
+    public void set_activo(boolean activo){
+        this.activo= activo;
+    } 
+ public abstract double tomarLectura();
+public String evaluarEstado(){
+    if(activo == true){
+        return "El Sensor esta activo";
+    }
+    else {
+        return "El Sensor esta apagado";
+    } 
+}
+}
+
+y ahora?
+```
+#respuesta:
+Excelente. El bug lógico está resuelto — `activo == true` ahora sí compara en vez de asignar. `evaluarEstado()` ya no muta el estado del objeto. Buen trabajo detectándolo.
+
+Sigamos el code review:
+
+**1. Nomenclatura — a medias**
+Cambiaste `getter_id`/`setter_id` por `get_id`/`set_id`. Mejora parcial, pero:
+- La convención JavaBean/camelCase de Oracle no usa guion bajo. ¿Cómo se ve `get_id` comparado con `getId`? ¿Qué patrón siguen *todas* las clases del JDK (`String.length()`, `ArrayList.get()`, records, etc.)? Revisa la diferencia entre estilo *snake_case* (típico de C/Python) y *camelCase* (idiomático en Java) y decide si esto es solo "gusto personal" o si rompe expectativas de herramientas (IDEs, frameworks de serialización, generadores de código, `Introspector` de Java Beans).
+
+**2. Un detalle de estilo que todo revisor senior marca**
+- `if(activo == true)` funciona correctamente ahora, pero ¿es la forma idiomática de evaluar un `boolean` en Java? Si `activo` ya es de tipo `boolean`, ¿qué te aporta compararlo explícitamente contra `true`? Piensa en cómo lo escribirías en un `if` de C++ con un `bool` — ¿usarías `if (bandera == true)` o simplemente `if (bandera)`? ¿Por qué un revisor de código consideraría esto "ruido sintáctico" (syntactic noise) más que un error?
+
+**3. Ahora responde tú: la pregunta de concurrencia**
+Ya te di las herramientas conceptuales (`synchronized`, `volatile`, visibilidad de memoria, happens-before). No voy a resolvértelo yo. Quiero que me entregues **en prosa, sin código**:
+
+- ¿Cuál de los tres atributos (`id`, `ubicacion`, `activo`) es el más probable candidato a cambiar frecuentemente en tiempo de ejecución en tu sistema agrícola (piensa en cuál se actualiza por eventos externos: mantenimiento remoto, activación/desactivación de sensores en campo)?
+- Para ese atributo, ¿te bastaría con declarar el campo como `volatile`, o necesitas además `synchronized` en los métodos `get`/`set`? Justifica la diferencia: ¿tu problema es solo de *visibilidad* entre hilos, o también hay riesgo de una operación *no atómica* (como un incremento, que no es tu caso aquí, pero piensa si aplica)?
+- ¿Qué pasaría si en lugar de `synchronized` manual usaras una clase del paquete `java.util.concurrent.atomic` (por ejemplo, algo equivalente a un booleano atómico)? ¿Qué ventaja tendría sobre `volatile` en cuanto a operaciones compuestas (leer-y-luego-escribir)?
+
+Dame tu análisis razonado de estas tres preguntas antes de tocar el código de nuevo.
