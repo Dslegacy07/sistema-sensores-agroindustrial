@@ -79,3 +79,63 @@ Piensa en un escenario real: dos hilos —uno que lee `activo` desde un dashboar
 ```
 
 Responde estas preguntas con tu propio análisis y seguimos profundizando en las herramientas concretas de Java para resolverlo (sin que yo te dé el código).
+#prompts 3:
+```java
+public abstract class sensor {
+    private String id;
+    private String ubicacion;
+    private boolean activo;
+    public sensor(String id, String ubicacion, boolean activo){
+        this.id=id;
+        this.ubicacion=ubicacion;
+        this.activo= activo;
+    }
+    public String getter_id(){
+    return id;
+    }
+    public String getter_ubicacion(){
+        return ubicacion;
+    }
+     public boolean getter_activo(){
+        return activo;
+    }
+    public void setter_id(String id){
+        this.id= id;
+    } 
+    public void setter_ubicacion(String ubicacion){
+        this.ubicacion= ubicacion;
+    } 
+    public void setter_activo(boolean activo){
+        this.activo= activo;
+    } 
+ public abstract double tomarLectura();
+public String evaluarEstado(){
+    if(activo= true){
+        return "activo";
+    }
+    else {
+        return "apagado";
+    } 
+}
+}
+```
+#respuesta:
+Buena corrección parcial — arreglaste el nombre del setter (`setter_activo`), eso resuelve el punto 3 de mi revisión anterior. Pero sigamos el proceso: no voy a darte el código corregido, sino más preguntas guía para que tú mismo llegues al resto.
+
+**1. El bug crítico sigue vivo**
+Fíjate: sigues teniendo `if(activo= true)` exactamente igual que antes. No lo tocaste.
+- ¿Qué tipo de dato retorna la expresión `activo = true` en Java? (pista: en Java, a diferencia de C, esa expresión sí compila porque el resultado de una asignación es del tipo de la variable asignada).
+- Traza mentalmente esto: llamas `evaluarEstado()` sobre un sensor con `activo = false`. ¿Qué valor tiene `activo` *después* de ejecutar esa línea? ¿El método te devuelve la verdad sobre el estado del objeto, o está mintiendo?
+- ¿Qué operador de Java usarías para *comparar* igualdad en vez de *asignar*? Corrígelo tú mismo y vuelve a enviarme el bloque.
+
+**2. Nomenclatura (aún pendiente)**
+- ¿Ya revisaste por qué `sensor` debería llamarse `Sensor`? ¿Qué dice la guía oficial de convenciones de Oracle sobre nombres de clases?
+- `getter_id()` / `setter_id()` — ¿sigues sin renombrarlos a `getId()`/`setId()`? Piensa: si mañana usas una librería como Jackson (para serializar este objeto a JSON) o un framework de inyección de dependencias, ¿reconocerán estos métodos como accesores válidos?
+
+**3. Ahora sí, tu pregunta de concurrencia — profundicemos**
+Ya tienes el setter correctamente encapsulado (`private boolean activo` + `setter_activo`). Pero encapsulamiento ≠ thread-safety. Preguntas para que investigues y me respondas:
+- Si dos hilos llaman simultáneamente a `setter_activo(true)` y `getter_activo()`, en ausencia de la palabra clave `synchronized` o de `volatile`, ¿el JLS te garantiza que el hilo lector vea *inmediatamente* el valor más reciente escrito por el otro hilo? Busca el término **"visibilidad de memoria" (memory visibility)** y **"happens-before"**.
+- ¿Qué diferencia hay entre proteger la *mutación* de un dato (evitar que dos escrituras se pisen) y proteger la *visibilidad* de un dato (que el lector vea el valor actualizado)? ¿Cuál de las dos resuelve `synchronized`? ¿Cuál resuelve `volatile`? ¿Necesitas ambas, o basta con una para este caso de un solo `boolean`?
+- Dado que tu clase es `abstract` y probablemente tendrá subclases concretas (por ejemplo `SensorTemperatura`, `SensorHumedad`) que sobrescriben `tomarLectura()` — si esa lectura también modifica algún estado interno heredado, ¿dónde debería vivir la responsabilidad de sincronización: en la clase base o en cada subclase? ¿Por qué?
+
+Corrige el bug del `if` y las convenciones de nombres, y luego dame tu análisis escrito (en prosa, no código) de qué mecanismo de Java usarías para las variables `id`, `ubicacion` y `activo` si esta clase fuera compartida entre múltiples hilos en tu sistema agrícola.
